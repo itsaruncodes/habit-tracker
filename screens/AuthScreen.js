@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { supabase } from '../supabaseClient';
 import { colors, spacing, radius, type, shadow } from '../theme';
+import OwnerTag from '../components/OwnerTag';
 
 const GMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[0-9])[a-z0-9]{8,}$/;
@@ -132,6 +133,8 @@ export default function AuthScreen() {
             </Text>
           </Text>
         </TouchableOpacity>
+
+        <OwnerTag />
       </ScrollView>
     </KeyboardAvoidingView>
   );

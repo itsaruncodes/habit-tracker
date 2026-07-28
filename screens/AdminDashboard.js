@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { supabase } from '../supabaseClient';
 import { colors, spacing, radius, type, shadow } from '../theme';
+import OwnerTag from '../components/OwnerTag';
 
 export default function AdminDashboard() {
   const [profiles, setProfiles] = useState([]);
@@ -110,6 +111,7 @@ export default function AdminDashboard() {
         refreshing={loading}
         onRefresh={loadProfiles}
         contentContainerStyle={styles.list}
+        ListFooterComponent={<OwnerTag />}
         ListEmptyComponent={
           !loading && (
             <View style={styles.emptyState}>

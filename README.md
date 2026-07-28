@@ -8,10 +8,19 @@ data or accounts — nothing else needs to change.
 
 ## What's new in this version
 
+- **Daily reminder alarms** — set a time per habit (tap pencil → toggle "Daily reminder alarm" → enter HH:MM), fires a local notification every day at that time, even with no internet
+- **Owner tag** — a clickable "Owner: ItsArunCodes" badge with a YouTube icon at the bottom of every screen, opens your channel: https://www.youtube.com/@ItsArunCodes/featured
 - Fixed the "infinite recursion" database bug
 - Redesigned UI: cleaner cards, spacing, colors, empty states
 - Edit habit names (tap the pencil icon)
 - Admin can promote/demote any account to admin right from the app (tap their role badge) — no more manually editing the Supabase table
+
+## Setting up the alarm feature
+
+1. Run `supabase_add_reminder.sql` in Supabase's SQL Editor (same steps as the schema file below) — adds the column that stores each habit's reminder time.
+2. Run `npm install` again after copying these files in — it pulls in `expo-notifications`.
+3. Rebuild the APK (`eas build -p android --profile preview`) — notifications need a real native build; they won't work in Expo Go on Android for anything beyond local testing on some setups, but they work fully once installed as a standalone APK.
+4. The first time a user sets a reminder, Android will ask for notification permission — they need to allow it.
 
 ## What's in this version
 
