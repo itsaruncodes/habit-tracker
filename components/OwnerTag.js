@@ -42,11 +42,12 @@ const styles = StyleSheet.create({
     fontSize: 8,
   },
   text: {
-    fontSize: 13,
+    fontSize: 14,
     color: colors.textMuted,
   },
   link: {
     color: colors.primary,
-    fontWeight: '700',
+    fontWeight: '800',
+    textDecorationLine: 'underline',
   },
 });
