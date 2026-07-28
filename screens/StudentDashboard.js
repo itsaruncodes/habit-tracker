@@ -9,8 +9,10 @@ import {
   SafeAreaView,
   Alert,
   StatusBar,
+  Modal,
 } from 'react-native';
 import { supabase } from '../supabaseClient';
+import { colors, spacing, radius, type, shadow } from '../theme';
 
 function todayString() {
   return new Date().toISOString().split('T')[0];
@@ -25,6 +27,8 @@ export default function StudentDashboard({ session }) {
   const [habits, setHabits] = useState([]);
   const [newHabitName, setNewHabitName] = useState('');
   const [loading, setLoading] = useState(true);
+  const [editingHabit, setEditingHabit] = useState(null);
+  const [editName, setEditName] = useState('');
 
   const loadHabits = useCallback(async () => {
     const { data, error } = await supabase
@@ -59,8 +63,30 @@ export default function StudentDashboard({ session }) {
     setNewHabitName('');
   };
 
+  const openEdit = (habit) => {
+    setEditingHabit(habit);
+    setEditName(habit.name);
+  };
+
+  const saveEdit = async () => {
+    const name = editName.trim();
+    if (!name || !editingHabit) return;
+    const { error } = await supabase
+      .from('habits')
+      .update({ name })
+      .eq('id', editingHabit.id);
+    if (error) {
+      Alert.alert('Could not save', error.message);
+      return;
+    }
+    setHabits((prev) =>
+      prev.map((h) => (h.id === editingHabit.id ? { ...h, name } : h))
+    );
+    setEditingHabit(null);
+  };
+
   const deleteHabit = (id) => {
-    Alert.alert('Delete habit', 'Are you sure?', [
+    Alert.alert('Delete habit', 'This can\u2019t be undone.', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',
@@ -97,17 +123,12 @@ export default function StudentDashboard({ session }) {
       };
     }
 
-    const { error } = await supabase
-      .from('habits')
-      .update(update)
-      .eq('id', habit.id);
+    const { error } = await supabase.from('habits').update(update).eq('id', habit.id);
     if (error) {
       Alert.alert('Could not update', error.message);
       return;
     }
-    setHabits((prev) =>
-      prev.map((h) => (h.id === habit.id ? { ...h, ...update } : h))
-    );
+    setHabits((prev) => prev.map((h) => (h.id === habit.id ? { ...h, ...update } : h)));
   };
 
   const renderItem = ({ item }) => (
@@ -115,19 +136,25 @@ export default function StudentDashboard({ session }) {
       <TouchableOpacity
         style={[styles.checkbox, item.completed_today && styles.checkboxChecked]}
         onPress={() => toggleHabit(item)}
+        activeOpacity={0.7}
       >
         {item.completed_today && <Text style={styles.checkmark}>✓</Text>}
       </TouchableOpacity>
 
       <View style={styles.habitInfo}>
-        <Text style={styles.habitName}>{item.name}</Text>
-        <Text style={styles.streakText}>
-          🔥 {item.streak} day{item.streak === 1 ? '' : 's'} streak
-        </Text>
+        <Text style={styles.habitName} numberOfLines={1}>{item.name}</Text>
+        <View style={styles.streakPill}>
+          <Text style={styles.streakPillText}>
+            🔥 {item.streak} day{item.streak === 1 ? '' : 's'}
+          </Text>
+        </View>
       </View>
 
-      <TouchableOpacity onPress={() => deleteHabit(item.id)} style={styles.deleteButton}>
-        <Text style={styles.deleteText}>✕</Text>
+      <TouchableOpacity onPress={() => openEdit(item)} style={styles.iconButton}>
+        <Text style={styles.editIcon}>✎</Text>
+      </TouchableOpacity>
+      <TouchableOpacity onPress={() => deleteHabit(item.id)} style={styles.iconButton}>
+        <Text style={styles.deleteIcon}>✕</Text>
       </TouchableOpacity>
     </View>
   );
@@ -136,7 +163,12 @@ export default function StudentDashboard({ session }) {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
       <View style={styles.header}>
-        <Text style={styles.title}>Habit Tracker</Text>
+        <View>
+          <Text style={styles.title}>Habits</Text>
+          <Text style={styles.subtitle}>
+            {habits.length} habit{habits.length === 1 ? '' : 's'} tracked
+          </Text>
+        </View>
         <TouchableOpacity onPress={() => supabase.auth.signOut()}>
           <Text style={styles.signOut}>Log out</Text>
         </TouchableOpacity>
@@ -146,12 +178,13 @@ export default function StudentDashboard({ session }) {
         <TextInput
           style={styles.input}
           placeholder="Add a new habit..."
+          placeholderTextColor={colors.textFaint}
           value={newHabitName}
           onChangeText={setNewHabitName}
           onSubmitEditing={addHabit}
           returnKeyType="done"
         />
-        <TouchableOpacity style={styles.addButton} onPress={addHabit}>
+        <TouchableOpacity style={styles.addButton} onPress={addHabit} activeOpacity={0.85}>
           <Text style={styles.addButtonText}>Add</Text>
         </TouchableOpacity>
       </View>
@@ -165,34 +198,127 @@ export default function StudentDashboard({ session }) {
         onRefresh={loadHabits}
         ListEmptyComponent={
           !loading && (
-            <Text style={styles.emptyText}>
-              No habits yet. Add one above to get started!
-            </Text>
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyEmoji}>🌱</Text>
+              <Text style={styles.emptyText}>No habits yet</Text>
+              <Text style={styles.emptySubtext}>Add one above to start your streak.</Text>
+            </View>
           )
         }
       />
+
+      <Modal visible={!!editingHabit} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Edit habit</Text>
+            <TextInput
+              style={styles.modalInput}
+              value={editName}
+              onChangeText={setEditName}
+              autoFocus
+            />
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalCancel}
+                onPress={() => setEditingHabit(null)}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.modalSave} onPress={saveEdit}>
+                <Text style={styles.modalSaveText}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f7f7fb', paddingHorizontal: 16, paddingTop: 12 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  title: { fontSize: 28, fontWeight: '700', color: '#1a1a1a' },
-  signOut: { color: '#c00', fontSize: 14 },
-  inputRow: { flexDirection: 'row', marginBottom: 16 },
-  input: { flex: 1, backgroundColor: '#fff', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, fontSize: 16, borderWidth: 1, borderColor: '#e0e0e6' },
-  addButton: { marginLeft: 8, backgroundColor: '#5b5bf0', borderRadius: 10, paddingHorizontal: 18, justifyContent: 'center' },
-  addButtonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
-  list: { paddingBottom: 24 },
-  habitRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 10, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
-  checkbox: { width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: '#5b5bf0', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  checkboxChecked: { backgroundColor: '#5b5bf0' },
-  checkmark: { color: '#fff', fontWeight: '700' },
+  container: { flex: 1, backgroundColor: colors.bg, paddingHorizontal: spacing.lg, paddingTop: spacing.md },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: spacing.lg },
+  title: { ...type.h1, color: colors.text },
+  subtitle: { ...type.caption, color: colors.textMuted, marginTop: 2 },
+  signOut: { color: colors.danger, fontSize: 14, fontWeight: '600', marginTop: 4 },
+  inputRow: { flexDirection: 'row', marginBottom: spacing.lg },
+  input: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: colors.text,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  addButton: {
+    marginLeft: spacing.sm,
+    backgroundColor: colors.primary,
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.lg,
+    justifyContent: 'center',
+  },
+  addButtonText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  list: { paddingBottom: spacing.xl },
+  habitRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...shadow.card,
+  },
+  checkbox: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.md,
+  },
+  checkboxChecked: { backgroundColor: colors.primary },
+  checkmark: { color: '#fff', fontWeight: '800', fontSize: 13 },
   habitInfo: { flex: 1 },
-  habitName: { fontSize: 16, fontWeight: '600', color: '#1a1a1a' },
-  streakText: { fontSize: 13, color: '#888', marginTop: 2 },
-  deleteButton: { padding: 6 },
-  deleteText: { color: '#c00', fontSize: 16 },
-  emptyText: { textAlign: 'center', color: '#999', marginTop: 40, fontSize: 15 },
+  habitName: { ...type.h2, fontSize: 16, color: colors.text },
+  streakPill: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.streakSoft,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    marginTop: 4,
+  },
+  streakPillText: { fontSize: 12, fontWeight: '700', color: colors.streak },
+  iconButton: { padding: 8, marginLeft: 2 },
+  editIcon: { color: colors.textMuted, fontSize: 15 },
+  deleteIcon: { color: colors.danger, fontSize: 16, fontWeight: '600' },
+  emptyState: { alignItems: 'center', marginTop: 64 },
+  emptyEmoji: { fontSize: 40, marginBottom: spacing.sm },
+  emptyText: { ...type.h2, color: colors.text },
+  emptySubtext: { ...type.body, color: colors.textMuted, marginTop: 4 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(20,22,31,0.45)', justifyContent: 'center', paddingHorizontal: spacing.xl },
+  modalCard: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.lg, ...shadow.card },
+  modalTitle: { ...type.h2, color: colors.text, marginBottom: spacing.md },
+  modalInput: {
+    backgroundColor: colors.bg,
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: colors.text,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  modalActions: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: spacing.lg },
+  modalCancel: { paddingVertical: 10, paddingHorizontal: spacing.md },
+  modalCancelText: { color: colors.textMuted, fontWeight: '600' },
+  modalSave: { backgroundColor: colors.primary, borderRadius: radius.sm, paddingVertical: 10, paddingHorizontal: spacing.lg, marginLeft: spacing.sm },
+  modalSaveText: { color: '#fff', fontWeight: '700' },
 });

@@ -4,6 +4,7 @@ import { supabase } from './supabaseClient';
 import AuthScreen from './screens/AuthScreen';
 import StudentDashboard from './screens/StudentDashboard';
 import AdminDashboard from './screens/AdminDashboard';
+import { colors } from './theme';
 
 export default function App() {
   const [session, setSession] = useState(null);
@@ -46,7 +47,7 @@ export default function App() {
   if (checking) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator size="large" color="#5b5bf0" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -63,5 +64,5 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  loading: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f7f7fb' },
+  loading: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bg },
 });

@@ -9,15 +9,16 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
 } from 'react-native';
 import { supabase } from '../supabaseClient';
+import { colors, spacing, radius, type, shadow } from '../theme';
 
 const GMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
-// 8+ chars, at least one lowercase letter, at least one number, lowercase-only letters
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[0-9])[a-z0-9]{8,}$/;
 
 export default function AuthScreen() {
-  const [mode, setMode] = useState('login'); // 'login' | 'signup'
+  const [mode, setMode] = useState('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -30,7 +31,7 @@ export default function AuthScreen() {
     if (!PASSWORD_REGEX.test(password)) {
       Alert.alert(
         'Invalid password',
-        'Password must be at least 8 characters, using only lowercase letters and numbers, with at least one of each.'
+        'Password must be at least 8 characters, lowercase letters and numbers only, with at least one of each.'
       );
       return false;
     }
@@ -40,19 +41,13 @@ export default function AuthScreen() {
   const handleSignup = async () => {
     if (!validate()) return;
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
-      email: email.trim(),
-      password,
-    });
+    const { error } = await supabase.auth.signUp({ email: email.trim(), password });
     setLoading(false);
     if (error) {
       Alert.alert('Sign up failed', error.message);
       return;
     }
-    Alert.alert(
-      'Check your email',
-      'Confirm your email if prompted, then log in below.'
-    );
+    Alert.alert('Account created', 'You can log in now.');
     setMode('login');
   };
 
@@ -67,10 +62,7 @@ export default function AuthScreen() {
       password,
     });
     setLoading(false);
-    if (error) {
-      Alert.alert('Login failed', error.message);
-    }
-    // On success, the onAuthStateChange listener in App.js takes over routing.
+    if (error) Alert.alert('Login failed', error.message);
   };
 
   return (
@@ -78,113 +70,118 @@ export default function AuthScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <Text style={styles.title}>Habit Tracker</Text>
-      <Text style={styles.subtitle}>
-        {mode === 'login' ? 'Log in' : 'Create an account'}
-      </Text>
-
-      <TextInput
-        style={styles.input}
-        placeholder="you@gmail.com"
-        autoCapitalize="none"
-        keyboardType="email-address"
-        value={email}
-        onChangeText={setEmail}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="password (e.g. abc12345)"
-        autoCapitalize="none"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
-
-      {mode === 'signup' && (
-        <Text style={styles.hint}>
-          8+ characters, lowercase letters and numbers only, at least one of
-          each.
+      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>✓</Text>
+        </View>
+        <Text style={styles.title}>Habit Tracker</Text>
+        <Text style={styles.subtitle}>
+          {mode === 'login' ? 'Welcome back' : 'Create your account'}
         </Text>
-      )}
 
-      <TouchableOpacity
-        style={styles.button}
-        onPress={mode === 'login' ? handleLogin : handleSignup}
-        disabled={loading}
-      >
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>
-            {mode === 'login' ? 'Log in' : 'Sign up'}
+        <View style={styles.card}>
+          <Text style={styles.fieldLabel}>Email</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="you@gmail.com"
+            placeholderTextColor={colors.textFaint}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            value={email}
+            onChangeText={setEmail}
+          />
+
+          <Text style={styles.fieldLabel}>Password</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="8+ chars, letters + numbers"
+            placeholderTextColor={colors.textFaint}
+            autoCapitalize="none"
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+          />
+
+          {mode === 'signup' && (
+            <Text style={styles.hint}>
+              Lowercase letters and numbers only — at least one of each.
+            </Text>
+          )}
+
+          <TouchableOpacity
+            style={styles.button}
+            onPress={mode === 'login' ? handleLogin : handleSignup}
+            disabled={loading}
+            activeOpacity={0.85}
+          >
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.buttonText}>
+                {mode === 'login' ? 'Log in' : 'Sign up'}
+              </Text>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity onPress={() => setMode(mode === 'login' ? 'signup' : 'login')}>
+          <Text style={styles.switchText}>
+            {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
+            <Text style={styles.switchTextBold}>
+              {mode === 'login' ? 'Sign up' : 'Log in'}
+            </Text>
           </Text>
-        )}
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        onPress={() => setMode(mode === 'login' ? 'signup' : 'login')}
-      >
-        <Text style={styles.switchText}>
-          {mode === 'login'
-            ? "Don't have an account? Sign up"
-            : 'Already have an account? Log in'}
-        </Text>
-      </TouchableOpacity>
+        </TouchableOpacity>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f7f7fb',
+  container: { flex: 1, backgroundColor: colors.bg },
+  scroll: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: spacing.xl, paddingVertical: spacing.xxl },
+  badge: {
+    alignSelf: 'center',
+    width: 56,
+    height: 56,
+    borderRadius: radius.lg,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 24,
+    marginBottom: spacing.lg,
+    ...shadow.card,
   },
-  title: {
-    fontSize: 30,
-    fontWeight: '700',
-    textAlign: 'center',
-    color: '#1a1a1a',
-  },
-  subtitle: {
-    fontSize: 16,
-    textAlign: 'center',
-    color: '#666',
-    marginTop: 6,
-    marginBottom: 28,
-  },
-  input: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 16,
+  badgeText: { color: '#fff', fontSize: 26, fontWeight: '800' },
+  title: { ...type.h1, textAlign: 'center', color: colors.text },
+  subtitle: { ...type.body, textAlign: 'center', color: colors.textMuted, marginTop: spacing.xs, marginBottom: spacing.xl },
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
     borderWidth: 1,
-    borderColor: '#e0e0e6',
-    marginBottom: 12,
+    borderColor: colors.border,
+    ...shadow.card,
   },
-  hint: {
-    fontSize: 12,
-    color: '#888',
-    marginBottom: 12,
+  fieldLabel: { ...type.label, color: colors.textMuted, marginBottom: spacing.xs, marginTop: spacing.sm },
+  input: {
+    backgroundColor: colors.bg,
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: colors.text,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
+  hint: { ...type.caption, color: colors.textFaint, marginTop: spacing.sm },
   button: {
-    backgroundColor: '#5b5bf0',
-    borderRadius: 10,
+    backgroundColor: colors.primary,
+    borderRadius: radius.sm,
     paddingVertical: 14,
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: spacing.lg,
   },
-  buttonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 16,
-  },
-  switchText: {
-    textAlign: 'center',
-    color: '#5b5bf0',
-    marginTop: 18,
-    fontSize: 14,
-  },
+  buttonText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  switchText: { textAlign: 'center', color: colors.textMuted, marginTop: spacing.xl, fontSize: 14 },
+  switchTextBold: { color: colors.primary, fontWeight: '700' },
 });

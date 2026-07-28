@@ -1,6 +1,20 @@
 # Habit Tracker — Student/Admin App
 
+## ⚠️ If you already ran the app before and saw "infinite recursion detected"
+
+Run `supabase_fix_recursion.sql` once in Supabase's SQL Editor (same steps as
+Part 1 below). It patches the broken policy without touching your existing
+data or accounts — nothing else needs to change.
+
+## What's new in this version
+
+- Fixed the "infinite recursion" database bug
+- Redesigned UI: cleaner cards, spacing, colors, empty states
+- Edit habit names (tap the pencil icon)
+- Admin can promote/demote any account to admin right from the app (tap their role badge) — no more manually editing the Supabase table
+
 ## What's in this version
+
 - Real login with email + password (Supabase Auth), no more anonymous sign-in
 - Signup restricted to @gmail.com addresses
 - Password rule: 8+ characters, lowercase letters + numbers only, at least one of each
@@ -17,6 +31,7 @@
 2. Name it `habit-tracker`, set a database password (save it), pick your region, **Create new project** (~1-2 min to spin up)
 3. Left sidebar → **SQL Editor** → **New query**
 4. Open `supabase_schema.sql` from this folder, copy all of it, paste in, click **Run**. You should see "Success."
+   4b. Then do the same with `supabase_fix_recursion.sql` — new query, paste, Run. This prevents the recursion bug from ever happening.
 5. Left sidebar → **Authentication** → **Providers** → make sure **Email** is enabled (it is by default)
 6. Left sidebar → **Authentication** → **Settings** → if you don't want to deal with email confirmation links while testing, turn **"Confirm email"** OFF. (Turn it back on later if you want it for real use.)
 7. Left sidebar → **Project Settings** (gear icon) → **API** → copy the **Project URL** and **anon public key**
@@ -25,8 +40,8 @@
 
 1. Open `supabaseClient.js` in this folder, replace:
    ```js
-   const SUPABASE_URL = 'YOUR_SUPABASE_PROJECT_URL';
-   const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+   const SUPABASE_URL = "YOUR_SUPABASE_PROJECT_URL";
+   const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
    ```
    with the values from step 7 above. Save.
 2. If you don't have Node.js: install the LTS version from nodejs.org.
@@ -65,4 +80,5 @@
 That APK is what you'd share with friends/students — each person who signs up gets their own student account and their own private habit list, and you can see all of them from your Admin screen.
 
 ## Note on limits
+
 - You can view and manage accounts, but you can't delete a user's login itself from inside the app — that requires Supabase's service-role key, which should never be shipped inside a mobile app (anyone could extract it and get full admin access to your database). If you need to remove someone, do it from the Supabase dashboard → Authentication → Users.
